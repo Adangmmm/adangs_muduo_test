@@ -54,7 +54,7 @@ void Channel::remove(){
 void Channel::handleEvent(Timestamp receiveTime){
     if(tied_){
         std::shared_ptr<void> gurd = tie_.lock();
-        // 绑上了，就通过.lock()检查TcpConnection是否存活，存活就处理，没存活就buchuli
+        // 绑上了，就通过.lock()检查TcpConnection是否存活，存活就处理，没存活就不处理
         if(gurd){
             handleEventWithGuard(receiveTime);
         }

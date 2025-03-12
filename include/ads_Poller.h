@@ -32,7 +32,8 @@ public:
     // 判断channel是否在当前的Poller中
     bool hasChannel(Channel *channel) const;
 
-
+    // EventLoop可以通过该接口获取默认的IO复用的具体实现
+    static Poller *newDefaultPoller(EventLoop *loop);
 
 protected:
     // 哈希表 key:sockfd  value:sockfd所属的Channel对象的指针

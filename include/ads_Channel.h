@@ -32,7 +32,7 @@ public:
     void setErrorCallback(EventCallback cb) {errorCallback_ = std::move(cb);}
 
     // fd得到Poller通知后处理事件，handleEvent在EventLoop::loop()中被调用
-    void handlEvent(Timestamp receiveTime);
+    void handleEvent(Timestamp receiveTime);
 
     int fd() const {return fd_;}
     int events() const {return events_;}
