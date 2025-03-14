@@ -8,6 +8,8 @@
 //#include "ads_noncopyable.h"
 //#include "ads_Timestamp.h"
 
+// 前置声明 EventLoop 类，告诉编译器这个类在后面会被使用，但不需要知道其具体定义。
+// 这种做法可以减少不必要的头文件依赖，降低编译时间，增强封装性。
 class EventLoop;
 
 class Channel : noncopyable

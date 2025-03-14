@@ -36,4 +36,4 @@ private:
     Channel acceptChannel_; //将acceptSocket_封装成一个Channel，用于监听新连接事件
     NewConnectionCallback NewConnectionCallback_; //储存新连接到来时的回调函数
     bool listenning_;  //判断是否正在监听
-}
+};
