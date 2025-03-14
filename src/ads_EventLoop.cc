@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "EventLoop.h"
-// #include "Logger.h"
+#include "Logger.h"
 #include "Channel.h"
 #include "Poller.h"
 

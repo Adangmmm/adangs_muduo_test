@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "ads_Socket.h"
-// #include "ads_Logger.h"
+#include "ads_Logger.h"
 #include "InetAddress.h"
 
 Socket::~Socket(){

@@ -1,10 +1,8 @@
 #include <sys/epoll.h>
 
 #include "ads_Channel.h"
-
-//250310 还没写
-//#include "ads_EventLoop.h"
-//#include "ads_Logger.h"
+#include "ads_EventLoop.h"
+#include "ads_Logger.h"
 
 const int Channel::kNoneEvent = 0;  //空事件
 const int Channel::kReadEvent = EPOLLIN | EPOLLPRI; //读事件
