@@ -50,4 +50,4 @@ private:
     std::string name_;
     bool started_;
     int numThreads_;
-}
+};
