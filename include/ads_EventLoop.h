@@ -67,7 +67,7 @@ private:
     ChannelList activeChannels_; // 返回Poller检测到当前由事件发生的所有Channel列表
 
     std:: atomic_bool callingPendingFunctors_; // 标识当前是否在执行任务回调
-    std::vector<Functor> pendingFunctors_;    // 存储loop需要执行的所有回调操作
+    std::vector<Functor> pendingFunctors_;    // 存储loop需要执行的所有回调操作(pendingFunctors_中保存的是其他线程希望你这个EventLoop线程执行的函数)
     std::mutex mutex_;                         // 互斥算，用于保护上面vector容器的线程安全操作
 
 };
