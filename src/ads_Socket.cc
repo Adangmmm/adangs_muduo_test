@@ -51,6 +51,17 @@ int Socket::accpept(InetAddress *peeraddr){
     return connfd;
 }
 
+// ::shutdown() 是一个系统调用，用于关闭一个套接字的某些操作。它有三个主要的关闭选项：
+//    SHUT_RD：关闭套接字的读操作，不能再从套接字中读取数据。
+//    SHUT_WR：关闭套接字的写操作，不能再向套接字中写入数据。
+//    SHUT_RDWR：关闭套接字的读写操作，既不能读也不能写。
+void Socket::shutdownWrite(){
+    // 这里使用了 SHUT_WR，表示关闭套接字的写操作，也就是停止向该连接发送数据。
+    if(::shutdown(sockfd_, SHUT_WR) < 0){
+        LOG_ERROR("shutdownWrite error");
+    }
+}
+
 void Socket::serTcpNoDelay(bool on){
     // TCP_NODELAY -> 禁用Nagle算法
     // Nagle算法用于减少网络上传输的小数据包量
