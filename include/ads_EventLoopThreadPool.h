@@ -30,6 +30,7 @@ public:
     // 获取下一个EventLoop进行负载均衡，若是多线程，会轮询/一致性哈希分配任务
     // 250320 发现错误
     // EventLoop *getNextLoop(const std::string &key);
+    EventLoop *getNextLoop();
 
     // 获取所有EventLoop指针
     std::vector<EventLoop *> getAllLoops();
