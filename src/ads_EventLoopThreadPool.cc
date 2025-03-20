@@ -48,6 +48,7 @@ void EventLoopThreadPool::start(const ThreadInitCallback &cb){
 }
 
 // 如果工作在多线程中，baseLoop_(mainLoop)会默认以轮询的方式分配Channel给subLoop
+/* 250320 发现错误，这里调用了getNode()但getNode()返回的是节点对应的哈希值，无法作为索引返回loops_[index]
 EventLoop *EventLoopThreadPool::getNextLoop(const std::string &key){
     size_t index = hash_.getNode(key);
     if(index >= loops_.size()){
@@ -56,7 +57,23 @@ EventLoop *EventLoopThreadPool::getNextLoop(const std::string &key){
     }
     return loops_[index];
 }
+*/
+// 若工作中多线程中，baseLoop_(mainLoop)会默认以轮询的方式分配Channel给subLoop
+EvenLoop *EventLoopThreadPool::getNextLoop(){
+    // 如果只设置了一个线程，则getNextLoop()每次都返回当前的baseLoop_
+    EventLoop *loop = baseLoop_;
 
+    // 通过轮询获取下个处理事件的loop，没设置多线程数量则不会进去
+    if(!loops_.empty()){
+        loop = loops_[next];
+        ++next_;
+        // 轮询
+        if(next_ >= loops_.size()){
+            next_ = 0;
+        }
+    }
+    return loop;
+}
 
 std::vector<EventLoop *> EventLoopThreadPool::getAllLoops(){
     if(loops_.empty()){

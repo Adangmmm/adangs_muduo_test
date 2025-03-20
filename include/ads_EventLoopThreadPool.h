@@ -6,7 +6,8 @@
 #include <memory>
 
 #include "ads_noncopyable.h"
-#include "ads_ConsistenHash.h"
+// 250320 发现问题
+// #include "ads_ConsistenHash.h"
 
 class EventLoop;
 class EventLoopThread;
@@ -27,7 +28,9 @@ public:
     void start(consst ThreadInitCallback &cb = ThreadInitCallback();)
 
     // 获取下一个EventLoop进行负载均衡，若是多线程，会轮询/一致性哈希分配任务
-    EventLoop *getNextLoop(const std::string &key);
+    // 250320 发现错误
+    // EventLoop *getNextLoop(const std::string &key);
+
     // 获取所有EventLoop指针
     std::vector<EventLoop *> getAllLoops();
 
@@ -44,7 +47,8 @@ private:
     // getNextLoop()轮询时的索引
     int next_;
     // 用于基于key选择EventLoop
-    ConsistenHash hash_;
+    // 250320 发现问题
+    // ConsistenHash hash_;
 
     // 线程池名称，通常由用户指定，池中EventLoopThread的名称依赖于线程池的名称
     std::string name_;
