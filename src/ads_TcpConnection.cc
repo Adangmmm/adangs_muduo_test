@@ -330,6 +330,7 @@ void TcpConnection::connectEstablished(){
     // 设置状态为已连接
     setState(kConnected);
     // 绑定生命周期，确保channel在TcpConnection销毁前销毁
+    // 回到Channel定义中看。确保TcpConnection在channel的handleEventWithGuard()调用完毕后，再销毁)
     channel_->tie(shared_from_this());
     // 让poller监听EPOLLIN事件
     channel_->enableReading();

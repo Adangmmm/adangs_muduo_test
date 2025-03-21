@@ -47,7 +47,14 @@ TcpServer::~TcpServer()
         // runInLoop() 确保 connectDestroyed() 在 正确的线程 执行（避免跨线程调用）。
         // connectDestroyed() 负责 关闭连接、释放资源。
         conn->getLoop()->runInLoop(std::bind(&TcpConnection::connectDestroyed, conn));
-    
+        /**
+         * 首先TcpServer::connections_是一个unordered_map<string, TcpConnectionPtr>，其中TcpConnectionPtr的含义是指向TcpConnection的shared_ptr。
+            在一开始，每一个TcpConnection对象都被一个共享智能指针TcpConnetionPtr持有，当执行了TcpConnectionPtr conn(item.second)时，这个TcpConnetion对象就被conn和这个item.second共同持有，但是这个conn的生存周期很短，只要离开了当前的这一次for循环，conn就会被释放。
+            紧接着调用item.second.reset()释放掉TcpServer中保存的该TcpConnectino对象的智能指针。此时在当前情况下，只剩下conn还持有这个TcpConnection对象，因此当前TcpConnection对象还不会被析构。
+            接着调用了conn->getLoop()->runInLoop(bind(&TcpConnection::connectDestroyed, conn));这句话的含义是让Sub EventLoop线程去执行TcpConnection::connectDestroyed()函数。当你把这个conn的成员函数传进去的时候，conn所指向的资源的引用计数会加1。因为传给runInLoop的不只有函数，还有这个函数所属的对象conn。
+            Sub EventLoop线程开始运行TcpConnection::connectDestroyed()函数。
+            Main EventLoop线程当前这一轮for循环跑完，共享智能指针conn离开代码块，因此被析构，但是TcpConnection对象还不会被释放，因为还有一个共享智能指针指向这个TcpConnection对象，而且这个智能指针在TcpConnection::connectDestroyed()中，只不过这个智能指针你看不到，它在这个函数中是一个隐式的this的存在。当这个函数执行完后，智能指针就真的被释放了。到此，就没有任何智能指针指向这个TcpConnection对象了。TcpConnection对象就彻底被析构删除了。
+        */
     }
 }
 
