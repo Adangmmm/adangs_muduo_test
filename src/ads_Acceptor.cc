@@ -17,7 +17,7 @@
  * IPPROTO_TCP：使用 TCP 协议。
  */
 static int createNonblocking(){
-    int sockfd = ::socket(AF_INET, SOCK_STREAM | SOCK_ NONBLOC | SOCK_CLOEXEC, IPPROTO_TCP);
+    int sockfd = ::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP);
     if(sockfd < 0){
         /* LOG_FATAL 是一个宏或日志函数，输出致命级别的错误消息，并可能会终止程序。
          * __FILE__、__FUNCTION__、__LINE__ 分别表示：
@@ -38,18 +38,18 @@ Acceptor::Acceptor(EventLoop *loop, const InetAddress &listenAddr, bool reusepor
     , listenning_(false)
 {
     // 设置socket选项，SO_REUSEADDR表示允许重用 TIME_WAIT 状态的端口。常见于服务重启时，避免"地址已被占用"的问题。
-    acceptSocket.setReuseAddr(true);
+    acceptSocket_.setReuseAddr(true);
     // 设置socket选项，SO_REUSEPORT表示允许多个 socket (进程/线程)绑定到同一个端口，用于负载均衡。
-    acceptSocket.setReusePort(true);
+    acceptSocket_.setReusePort(true);
     // 将 socket 绑定到指定的 IP 地址和端口。调用 bind() 系统调用。如果绑定失败，可能是由于地址被占用或权限不足。
-    acceptSocket.bindAddress(listenAddr);
+    acceptSocket_.bindAddress(listenAddr);
     // TcpServer::start() => Acceptor.listen() 如果有新用户连接 要执行一个回调(accept()生成新的文件描述符 => connfd => 打包成Channel => 唤醒subloop)
     // baseloop监听到有事件发生 => acceptChannel_(listenfd) => 执行该回调函数
     acceptChannel_.setReadCallback(std::bind(&Acceptor::handleRead, this));
 }
 
 Acceptor::~Acceptor(){
-    acceptChannel_.disableAll();   // Poller不再对该Channel（fd）的任何事件感兴趣
+    acceptChannel_.disableALL();   // Poller不再对该Channel（fd）的任何事件感兴趣
     acceptChannel_.remove();       // 从Poller中移除该Channel
     /* disableAll + remove 的目的：
      * 1. 避免空指针访问
@@ -61,7 +61,7 @@ Acceptor::~Acceptor(){
     */
 }
 
-Acceptor::listen(){
+void Acceptor::listen(){
     listenning_ = true;              // 标志位
     acceptSocket_.listen();          // 这一行是底层网络通信的核心部分，调用的是封装在 Socket 类中的 listen() 方法
     acceptChannel_.enableReading();  // 将 acceptChannel_ 注册到 Poller 中，监听其读事件，关键！
@@ -75,13 +75,13 @@ Acceptor::listen(){
      */
 }
 
-Acceptor::handleRead(){
+void Acceptor::handleRead(){
     // InetAddress 是 muduo 封装的一个类，封装了IP 地址和端口号。
     // accept() 系统调用会将客户端的 IP 和端口号写入 peerAddr。peerAddr 用于保存新连接客户端的地址信息。
     InetAddress peerAddr; 
     // 调用封装在 acceptSocket_（类型为 Socket）中的 .accept() 方法。.accept() 方法内部调用 accept() 系统调用，接受新的客户端连接。
     // 如果连接成功，返回新的 socket 文件描述符（connfd）。如果失败，返回 -1，并设置 errno 表示错误原因。
-    int connfd = acceptSoket_.accept(&peerAddr);
+    int connfd = acceptSocket_.accept(&peerAddr);
 
     if(connfd >= 0){
         if(NewConnectionCallback_){

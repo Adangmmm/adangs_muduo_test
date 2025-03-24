@@ -14,7 +14,7 @@ class Channel : noncopyable
 {
 public:
     using EventCallback = std::function<void()>;    //C++11代替typedef
-    using ReadEventCallback = std::function<void(Timestamp)>
+    using ReadEventCallback = std::function<void(Timestamp)>;
 
     Channel(EventLoop *loop, int fd);
     ~Channel();
@@ -36,7 +36,7 @@ public:
 
     int fd() const {return fd_;}
     int events() const {return events_;}
-    int set_revents(int revt) {revens_ = revt;}
+    void set_revents(int revt) {revents_ = revt;}
 
     // 设置fd相应的事件状态，相当于epoll_ctl add delete
     void enableReading() {events_ |= kReadEvent; update();}
@@ -54,7 +54,7 @@ public:
     void set_index(int idx) {index_ = idx;}
 
     // one loop per thread
-    EventLoop *ownerLoop() {return loop_};
+    EventLoop *ownerLoop() {return loop_;}
 private:
 
     void update();  // 调用了epoll_ctl()

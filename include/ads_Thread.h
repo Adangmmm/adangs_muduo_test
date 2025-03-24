@@ -7,7 +7,7 @@
 #include <string>
 #include <atomic>       // 提供std:atomic，用于线程安全的原子操作
 
-#include "noncopyable.h"
+#include "ads_noncopyable.h"
 
 // 将std::thread 进行了功能性增强和封装，满足了高性能网络库的需求
 class Thread : noncopyable{
@@ -27,7 +27,7 @@ public:
     pid_t tid() const {return tid_;}
     const std::string &name() {return name_;}
 
-    static in numCreadted() {return numCreated_;}
+    static int numCreadted() {return numCreated_;}
 
 private:
     //设置默认线程名
@@ -40,5 +40,5 @@ private:
     pid_t tid_;     // 线程系统级ID
     ThreadFunc func_;   // 线程执行的函数
     std::string name_;  // 线程名
-    static std::atomic_int numCreadted_;    // 已创建的线程总数
-}
+    static std::atomic_int numCreated_;    // 已创建的线程总数
+};

@@ -3,10 +3,10 @@
 #include "ads_Thread.h"
 #include "ads_CurrentThread.h"
 
-std::atomic_int Thread::numCreadted_(0);
+std::atomic_int Thread::numCreated_(0);
 
-Thread::Thread(ThreadFunc func, const std:string &name)
-    : stated_(false)
+Thread::Thread(ThreadFunc func, const std::string &name)
+    : started_(false)
     , joined_(false)
     , tid_(0)
     // std::move() 将 func 变成右值，触发 std::function 的移动构造。C++11
@@ -32,7 +32,7 @@ Thread::~Thread(){
 void Thread::start(){
     started_ = true;
     // 定义信号量，sem_t 是 POSIX 的信号量类型。
-    semt_ sem;
+    sem_t sem;
     // false：表示信号量不在进程间共享，只在当前线程或当前进程内部使用。0：信号量的初始值为 0（表示等待状态，用于同步操作）。
     sem_init(&sem, false, 0);
     // 新线程的执行体是一个 Lambda 表达式：
@@ -40,7 +40,7 @@ void Thread::start(){
     //   tid_ = CurrentThread::tid();：返回当前线程的系统级 ID。通过 tid_ 记录新线程的 ID。
     //   sem_post(&sem)：V操作，解除 sem_wait() 的阻塞。表示新线程已成功获取 tid。
     //   func_()：执行用户定义的回调函数（在新线程中执行）。
-    thread = std::shared_ptr<std::thread>(new std::thread([&](){
+    thread_ = std::shared_ptr<std::thread>(new std::thread([&](){
         tid_ = CurrentThread::tid();
         sem_post(&sem);
         func_();
@@ -60,7 +60,7 @@ void Thread::join(){
 
 
 void Thread::setDefaultName(){
-    int num = ++numCreadted_;
+    int num = ++numCreated_;
 
     if(name_.empty()){
         char buf[32] = {0};

@@ -11,7 +11,7 @@ class InetAddress{
 public:
     // explicit 关键字防止构造函数被隐式转换调用，防止发生隐式转换带来的歧义问题。
     // uint16_t port = 0：默认端口号为 0（表示由操作系统自动分配端口）。std::string ip = "127.0.0.1"：默认 IP 地址为 127.0.0.1（本地主机）
-    explicit InetAddress(unit16_t port = 0, std::string ip = "127.0.0.1");
+    explicit InetAddress(uint16_t port = 0, std::string ip = "127.0.0.1");
     // 允许通过一个 sockaddr_in 结构体直接初始化 InetAddress 对象。使用 成员初始化列表 直接对 addr_ 进行赋值。
     explicit InetAddress(const sockaddr_in &addr)
         : addr_(addr)
@@ -23,7 +23,7 @@ public:
     // 获取 IP 地址和 端口号。将 sockaddr_in 结构体中的 IP 和端口号转换为 "192.168.1.1:8080" 格式。
     std::string toIpPort() const;
     // 返回 sockaddr_in 结构体中的端口号（通过 ntohs() 将网络字节序转换为主机字节序）。
-    unit16_t toPort() const; 
+    uint16_t toPort() const; 
 
     // 返回 sockaddr_in 结构体的指针。const 表示调用这个函数不会修改对象的状态。
     /* 两个const:

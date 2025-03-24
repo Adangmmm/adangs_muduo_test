@@ -94,6 +94,8 @@ private:
             std::copy(begin() + readerIndex_,
                       begin() + writerIndex_,
                       begin() + kCheapPrepend);
+            readerIndex_ = kCheapPrepend;
+            writerIndex_ = readerIndex_ + readable;
         }
     }
 

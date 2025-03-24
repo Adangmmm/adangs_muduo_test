@@ -11,9 +11,9 @@ const int Channel::kWriteEvent = EPOLLOUT;  //写事件
 //
 Channel::Channel(EventLoop *loop, int fd)
     : loop_(loop)
-    , fd(fd_)
-    , events(0)
-    , revents(0)
+    , fd_(fd)
+    , events_(0)
+    , revents_(0)
     , index_(-1)
     , tied_(false)
 {    
@@ -30,7 +30,7 @@ Channel::~Channel()
  * 用tie解决TcpConnection和Channel的生命周期时常问题，保证Channel对象
  * 在TcpConeection对象销毁前销毁
  **/
-void Channel::tie(const std::shared_ptr<void &obj>){
+void Channel::tie(const std::shared_ptr<void> &obj){
     tie_ = obj;
     tied_ = true;   //  绑定完标志为true
 }
@@ -63,7 +63,7 @@ void Channel::handleEvent(Timestamp receiveTime){
 }
 
 void Channel::handleEventWithGuard(Timestamp receiveTime){
-    LOG_INFO("channel handleEvent revent:%d\n", revents_)
+    LOG_INFO("channel handleEvent revent:%d\n", revents_);
 
     // 语法： &是按位与运算，revents_ & EPOLLHUP表示判断revents_是否包含EPOLLHUP事件
     //       if(closeCallback_)检查回调函数是否有效

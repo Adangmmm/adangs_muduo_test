@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "ads_Logger.h"
-#include "ads_Timestamp.g"
+#include "ads_Timestamp.h"
 
 Logger &Logger::instance(){
     static Logger logger;

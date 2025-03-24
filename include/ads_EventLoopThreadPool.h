@@ -1,4 +1,4 @@
-#pragma ocne
+#pragma once
 
 #include <functional>
 #include <string>
@@ -14,7 +14,7 @@ class EventLoopThread;
 
 class EventLoopThreadPool : noncopyable{
 public:
-    using ThreadInitCallback = std::functional<void(EventLoop *)>;
+    using ThreadInitCallback = std::function<void(EventLoop *)>;
 
     // baseLoop → 主线程中的 EventLoop（若线程数 numThreads_ == 1，直接使用 baseLoop_）。
     // 线程池需要绑定一个baseLoop，主线程的baseloop用于监听连接，多线程时baseLoop接收连接并分发给子线程的EventLoop处理
@@ -25,7 +25,7 @@ public:
     void setThreadNum(int numThreads) {numThreads_ = numThreads;}
 
     // 启动线程池，创建多个 EventLoopThread。
-    void start(consst ThreadInitCallback &cb = ThreadInitCallback();)
+    void start(const ThreadInitCallback &cb = ThreadInitCallback());
 
     // 获取下一个EventLoop进行负载均衡，若是多线程，会轮询/一致性哈希分配任务
     // 250320 发现错误

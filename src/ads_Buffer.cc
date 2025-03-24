@@ -27,7 +27,7 @@ ssize_t Buffer::readFd(int fd, int *saveErrno){
      */
     // 分配两个连续的缓冲区
     struct iovec vec[2];
-    cosnt size_t writeable = writeableBytes();
+    const size_t writeable = writeableBytes();
 
     vec[0].iov_base = begin() + writerIndex_;
     vec[0].iov_len = writeable;
@@ -53,15 +53,15 @@ ssize_t Buffer::readFd(int fd, int *saveErrno){
     else{
         // buffer_不够大，先填满buffer_，更新writerIndex_
         // 再把多的数据暂存栈上的extrabuf，待Buffer扩容后，从extrabuf上append进Buffer
-        writerIndex_ = buffer.size();
+        writerIndex_ = buffer_.size();
         append(extrabuf, n - sizeof(extrabuf));
     }
     return n;   //返回读取数据的字节数
     
 }
 
-ssieze_t Buffer::writeFd(int fd, int *saveErrno){
-    ssize_t n = ::write(fd, peek(), readableBytes())
+ssize_t Buffer::writeFd(int fd, int *saveErrno){
+    ssize_t n = ::write(fd, peek(), readableBytes());
     if(n < 0){
         *saveErrno = errno;
     }

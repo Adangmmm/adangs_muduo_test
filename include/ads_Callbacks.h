@@ -4,7 +4,7 @@
 #include <functional>
 
 class Buffer;
-class TcpConnection
+class TcpConnection;
 class Timestamp;
 
 using TcpConnectionPtr = std::shared_ptr<TcpConnection>;

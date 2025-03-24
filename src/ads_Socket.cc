@@ -1,12 +1,12 @@
 #include <unistd.h>
-#include <sys/sypes.h>
+#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/tcp/h>
+#include <netinet/tcp.h>
 #include <string.h>
 
 #include "ads_Socket.h"
 #include "ads_Logger.h"
-#include "InetAddress.h"
+#include "ads_InetAddress.h"
 
 Socket::~Socket(){
     ::close(sockfd_);
@@ -17,13 +17,13 @@ void Socket::bindAddress(const InetAddress &localaddr){
      * sockaddr* 是一个通用的 套接字地址 结构体指针，用于表示各种类型的套接字地址。
      * bind成功返回 0 ，失败返回 -1 ，并设置 errno 错误码。
      */
-    if(0 != ::bind(sockfd_, (sockaddr *)localaddr.getSockAddr()), sizeof(sockaddr_in)){
+    if(0 != ::bind(sockfd_, (sockaddr *)localaddr.getSockAddr(), sizeof(sockaddr_in))){
         LOG_FATAL("bind sockfa:%d fail\n", sockfd_);
     }
 }
 
 // 将 socket 从普通的 socket 状态转换为监听状态，用于服务器场景。
-void Sockt::listen(){
+void Socket::listen(){
     /* ::listen() 是一个系统调用，定义在 <sys/socket.h> 头文件中
      * 1024 → backlog 参数，表示等待连接队列的最大长度。
      * backlog 定义了操作系统内核为这个 socket 维护的未完成连接队列的长度。
@@ -33,17 +33,17 @@ void Sockt::listen(){
      * listen成功返回 0 ，失败返回 -1 ，并设置 errno 错误码。
      */
     if(0 != ::listen(sockfd_, 1024)){
-        LOG_FATAL("listen sockfd:%d faiil\n), sockfd_");
+        LOG_FATAL("listen sockfd:%d faiil\n)", sockfd_);
     }
 }
 
 // 返回新创建的已连接 socket 文件描述符（connfd）。失败，返回 -1。
-int Socket::accpept(InetAddress *peeraddr){
+int Socket::accept(InetAddress *peeraddr){
     sockaddr_in addr;
     socklen_t addrlen = sizeof(addr);
     // SOCK_NONBLOCK → 将新 socket 设置为非阻塞。SOCK_CLOEXEC → 设置 close-on-exec 标志，避免子进程继承该 socket。
     // 如果不设置 SOCK_CLOEXEC，子进程会继承已连接的 socket 文件描述符：即使父进程关闭了 socket，子进程仍持有描述符，可能导致端口被占用或资源泄漏。服务器需要在 fork() 后自行关闭不必要的描述符。
-    int connfd = ::ccept4(sockfd_, (sockaddr *)&addr, &len, SOCK_NONBLOCK | SOCK_CLOEXEC);
+    int connfd = ::accept4(sockfd_, (sockaddr *)&addr, &addrlen, SOCK_NONBLOCK | SOCK_CLOEXEC);
 
     if(connfd >= 0){
         peeraddr->setSockAddr(addr);
@@ -62,7 +62,7 @@ void Socket::shutdownWrite(){
     }
 }
 
-void Socket::serTcpNoDelay(bool on){
+void Socket::setTcpNoDelay(bool on){
     // TCP_NODELAY -> 禁用Nagle算法
     // Nagle算法用于减少网络上传输的小数据包量
     // TCP_NODELAY设置为1后，禁用Nagle算法，允许小数据包的立即发送
@@ -78,7 +78,7 @@ void Socket::setReuseAddr(bool on){
     // 多个 socket 在不同的进程中同时监听相同的地址和端口
     // 避免socket因进入 TIME_WAIT 状态导致端口无法及时释放
     int optval = on ? 1 : 0;
-    ::setsockopt(sockfa_, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+    ::setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 }
 // SO_REUSEADDR → 解决 TIME_WAIT
 // SO_REUSEPORT → 解决负载均衡
@@ -97,5 +97,5 @@ void Socket::setKeepAlive(bool on){
     // 若响应，则保持连接存活状态
     // 如果连接已断开，内核会触发 ECONNRESET 或 ETIMEDOUT 错误，recv() 或 send() 将返回 -1。
     int optval = on ? 1 : 0;
-    ::setsockopt(sockfd_, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval);)
+    ::setsockopt(sockfd_, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval));
 }

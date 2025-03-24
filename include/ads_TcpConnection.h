@@ -6,7 +6,7 @@
 
 #include "ads_noncopyable.h"
 #include "ads_InetAddress.h"
-#include "ads_Callback.h"
+#include "ads_Callbacks.h"
 #include "ads_Buffer.h"
 #include "ads_Timestamp.h"
 
@@ -28,7 +28,7 @@ public:
                   const InetAddress &peerAddr);
     ~TcpConnection();
 
-    EventLoop *getLoop() cosnt {return loop_;}
+    EventLoop *getLoop() const {return loop_;}
     const std::string &name() const {return name_;}
     const InetAddress &localAddress() const {return localAddr_;}
     const InetAddress &peerAddress() const {return peerAddr_;} 
@@ -45,10 +45,11 @@ public:
     void shutdown();
 
     void setConnectionCallback(const ConnectionCallback &cb) { connectionCallback_ = cb;}
-    void setMessageCallbakc(const MessageCallback &cb) {messageCallback_ = cb;}
-    void setWriteCompleteCallback(cosnt WriteCompleteCallback &cb) {writeComepleteCallback_ = cb;}
+    void setMessageCallback(const MessageCallback &cb) {messageCallback_ = cb;}
+    void setWriteCompleteCallback(const WriteCompleteCallback &cb) {writeCompleteCallback_ = cb;}
     void setCloseCallback(const CloseCallback &cb) {closeCallback_ = cb;}
-    void setHightWaterMarkCallback(const HighWaterMarkCallback &cb) {hightWaterMark_ = cb;}
+    void setHightWaterMarkCallback(const HighWaterMarkCallback &cb, size_t highWaterMark)
+    {highWaterMarkCallback_ = cb; highWaterMark_ = highWaterMark;}
 
     // 连接建立
     void connectEstablished();
@@ -58,15 +59,15 @@ public:
 private:
     // 定义了一个枚举类型，里面的类型会默认对应0，1，2，3... 也可以显示指定 = value
     enum StateE{
-        kDisconnected;
-        kConnecting;
-        kConnected;
-        kDisconnecting;
+        kDisconnected,
+        kConnecting,
+        kConnected,
+        kDisconnecting,
     };
     void setState(StateE state) {state_ = state;}
 
     // 可读事件，调用messageCallbak_
-    void handleRead(TImestamp receiveTime);
+    void handleRead(Timestamp receiveTime);
     void handleWrite();     // 写事件，发送缓冲区数据
     void handleClose();     // 连接关闭
     void handleError();     // 错误处理
@@ -78,7 +79,7 @@ private:
     // TcpServer中，若为单Reactor程则loop_为baseloop，若为多Reactor则loop_为subloop
     EventLoop *loop_;
     const std::string name_;
-    std::atomic_int state;
+    std::atomic_int state_;
     // 连接是否在监听读事件
     bool reading_;
 
@@ -95,7 +96,7 @@ private:
     WriteCompleteCallback writeCompleteCallback_;  // 消息发送完成后的回调
     HighWaterMarkCallback highWaterMarkCallback_;   // 高水位回调
     CloseCallback closeCallback_;                   // 关闭连接的回调
-    size_t hightWaterMark_;     //高水位阈值
+    size_t highWaterMark_;     //高水位阈值
 
     // 数据缓冲区
     Buffer inputBuffer_;

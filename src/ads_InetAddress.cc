@@ -3,7 +3,7 @@
 
 #include "ads_InetAddress.h"
 
-InetAddress::InetAddress(unit16_t port, std:string ip){
+InetAddress::InetAddress(uint16_t port, std::string ip){
     // memset(void *s, int c, size_t n) —— 用于将内存块设置为指定的值。
     // &addr_ —— 指向要清空的内存（即 sockaddr_in 结构体）。0 —— 用 0 填充内存。sizeof(addr_) —— 填充的字节长度。
     // 目的是将 sockaddr_in 结构体的内存置为 0，防止其中存在未定义数据（初始化操作）
@@ -29,7 +29,7 @@ std::string InetAddress::toIp() const{
     char buf[64] = {0};
     // inet_ntop（network to presentation）将网络格式（即二进制）转换为人类可读的点分十进制格式。
     //inet_ntop() 的返回值是指向 buf 的指针（即转换后的 IP 字符串）。如果转换失败，返回 nullptr。把网络字符
-    ::inet_ntop(AF_INET, &addr.sin_addr, buf, sizeof(buf));
+    ::inet_ntop(AF_INET, &addr_.sin_addr, buf, sizeof(buf));
     return buf;
 }
 
@@ -39,13 +39,13 @@ std::string InetAddress::toIpPort() const{
     // ::strlen(buf) 是一个 C 标准库函数，用于返回字符串 buf 的长度（不包括末尾的 '\0'）。end 保存当前字符串的长度。
     size_t end = strlen(buf);
     // ntohs(uint16_t netshort) —— 将 网络字节序（大端字节序）转换为 主机字节序（主机端存储方式）。
-    unit16_t port = ntohs(addr_.sin_port);
+    uint16_t port = ntohs(addr_.sin_port);
     // sprintf() 的工作方式是：从 buf + end 的位置开始写入格式化字符串，在写入的最后自动加上 '\0' 结束符
     sprintf(buf + end, ":%u", port);
     return buf;
 }
 
-unit16_t InetAddress::toPort() const{
+uint16_t InetAddress::toPort() const{
     return ntohs(addr_.sin_port);
 }
 

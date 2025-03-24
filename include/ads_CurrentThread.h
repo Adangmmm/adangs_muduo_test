@@ -6,11 +6,11 @@
 #include <sys/syscall.h>
 
 // 定义命名空间，封装了与当前线程 ID 相关的功能，防止命名冲突。
-namespace CurrrentThred{
+namespace CurrentThread{
     // __thread 是 GCC/Clang 提供的线程局部存储（TLS）修饰符。
     // 表示t_cachedTid是线程局部的，每个线程都有自巿的t_cachedTid变量。每个线程对t_cachedTid的读写是相互独立的
     // 每个线程的 tid 在第一次获取后缓存在 t_cachedTid 中，后续读取更快 
-    extern _thread int t_cachedTid;
+    extern __thread int t_cachedTid;
 
     // 用于获取当前线程的 tid，并将其缓存在 t_cachedTid 中，减少系统调用的频率。
     // tid 的获取通过 syscall(SYS_gettid) 完成，系统调用本身开销较高，因此需要缓存。
@@ -21,10 +21,9 @@ namespace CurrrentThred{
     inline int tid(){
         // __built_expect() 是GCC/Clang提供的分支预测优化指令。__built_expect(x,0)提示编译器x的值更可能为0
         // t_cachedTid == 0 表示当前线程的 tid 尚未缓存，需要调用 cacheTid() 获取。
-        if(_built_expect(t_cachedTid == 0, 0)){
+        if(__builtin_expect(t_cachedTid == 0, 0)){
             cacheTid();
         }
+        return t_cachedTid;
     }
-
-    return t_cachedTid;
 }

@@ -16,14 +16,14 @@
 
  class Channel;
 
- class EPollPoller : public EPollPoller
+ class EPollPoller : public Poller
  {
 public:
     EPollPoller(EventLoop *loop);
     ~EPollPoller() override;
 
     // 重写基类Poller的抽象方法
-    TImestamp poll(int timeoutMs, ChannelList *activeChannels) override;
+    Timestamp poll(int timeoutMs, ChannelList *activeChannels) override;
     void updateChannel(Channel *channel) override;
     void removeChannel(Channel *channel) override;
 

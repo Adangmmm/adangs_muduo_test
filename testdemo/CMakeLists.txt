@@ -1,5 +1,5 @@
 # 获取当前目录下的所有源文件
-file(GLOB TESTDEMO_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/.*cc)
+file(GLOB TESTDEMO_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 
 # 创建可执行文件
 add_executable(chatserver ${TESTDEMO_SRCS})

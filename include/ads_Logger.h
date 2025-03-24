@@ -2,20 +2,20 @@
 
 #include <string>
 
-#include "ads-noncopyable.h"
+#include "ads_noncopyable.h"
 
 // LOG_INFO(%s %d, arg1, arg2); 带参数的宏
 // logmsgFormat：表示格式化字符串，比如 "The value is %d"
 // ...：表示可变参数，即格式化字符串中可能包含的参数（如 int、string 等）
+
+// ##__VA_ARGS__ 是一个GCC扩展，表示将可变参数即...，传递给snprintf()  
+// ##用于在宏中拼接字符串。若参数为空，则##起到去掉前面逗号的作用  
 #define LOG_INFO(logmsgFormat, ...)                         \
     do                                                      \
     {                                                       \
-        // 返回一个全局唯一的Logger对象，logger用于执行记录日志的操作  
         Logger &logger = Logger::instance();                \
         logger.setLogLevel(INFO);                           \
         char buf[1024] = {0};                               \
-        // ##__VA_ARGS__ 是一个GCC扩展，表示将可变参数即...，传递给snprintf()  
-        // ##用于在宏中拼接字符串。若参数为空，则##起到去掉前面逗号的作用  
         snprintf(buf, 1024, logmsgFormat, ##__VA_ARGS__);   \
         logger.log(buf);                                    \
     }while(0) 

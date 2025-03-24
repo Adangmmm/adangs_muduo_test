@@ -2,7 +2,7 @@
 
 #include "ads_EventLoopThreadPool.h"
 #include "ads_EventLoopThread.h"
-#include "Logger.h"
+#include "ads_Logger.h"
 
 
 // 初始化 EventLoopThreadPool，但不会创建 EventLoopThread 线程。
@@ -14,7 +14,8 @@ EventLoopThreadPool::EventLoopThreadPool(EventLoop *baseLoop, const std::string 
     , numThreads_(0)
     , next_(0)
     // 一致性哈希对象，默认3个虚拟点
-    , hash_(3)
+    // 删掉了
+    //, hash_(3)
 {
 }
 
@@ -27,7 +28,7 @@ EventLoopThreadPool::~EventLoopThreadPool()
 void EventLoopThreadPool::start(const ThreadInitCallback &cb){
     started_ = true;
 
-    for(int i = 0; i < numThreads; ++i){
+    for(int i = 0; i < numThreads_; ++i){
         char buf[name_.size() + 32];
         // name_ + int 需要sizeof(buf) + 32bits
         snprintf(buf, sizeof(buf), "%s%d", name_.c_str(), i);
@@ -37,12 +38,13 @@ void EventLoopThreadPool::start(const ThreadInitCallback &cb){
         loops_.push_back(t->startLoop());
         // hash_.addNode(buf);：将每个线程的名称（如 "WorkerPool0", "WorkerPool1", ...）
         // 作为节点添加到一致性哈希中。这使得后续的请求可以根据一致性哈希分配到特定的 EventLoop。
-        hash_.addNote(buf);
+        // 删掉了
+        // hash_.addNote(buf);
     }
 
     // numThreads_ == 0：当没有额外的 EventLoopThread 时，线程池只有主线程的 baseLoop_。这种情况下，baseLoop_ 用于处理所有的 IO 事件。
     // cb(baseLoop_);：如果提供了回调 cb，则直接执行回调函数，回调函数会在主线程中的 baseLoop_ 上执行一些初始化工作。
-    if(numThreads == 0 && cb){
+    if(numThreads_ == 0 && cb){
         cb(baseLoop_);
     }
 }
@@ -59,13 +61,13 @@ EventLoop *EventLoopThreadPool::getNextLoop(const std::string &key){
 }
 */
 // 若工作中多线程中，baseLoop_(mainLoop)会默认以轮询的方式分配Channel给subLoop
-EvenLoop *EventLoopThreadPool::getNextLoop(){
+EventLoop *EventLoopThreadPool::getNextLoop(){
     // 如果只设置了一个线程，则getNextLoop()每次都返回当前的baseLoop_
     EventLoop *loop = baseLoop_;
 
     // 通过轮询获取下个处理事件的loop，没设置多线程数量则不会进去
     if(!loops_.empty()){
-        loop = loops_[next];
+        loop = loops_[next_];
         ++next_;
         // 轮询
         if(next_ >= loops_.size()){

@@ -17,16 +17,14 @@
 #include "ads_Logger.h"
 #include "ads_Socket.h"
 #include "ads_Channel.h"
-#include "ads_EvenLoop.h"
+#include "ads_EventLoop.h"
 
 
 static EventLoop *CheckLoopNotNull(EventLoop *loop){
-    if(loop_ == nullptr){
-        LOG_FATAL9("%s:%s:%d mainLoop is null!\n", __FILE__, __FUNCTION, __LINE__);
+    if(loop == nullptr){
+        LOG_FATAL("%s:%s:%d mainLoop is null!\n", __FILE__, __FUNCTION__, __LINE__);
     }
-    else{
-        return loop;
-    }
+        return loop;  
 }
 
 TcpConnection::TcpConnection(EventLoop *loop,
@@ -48,11 +46,11 @@ TcpConnection::TcpConnection(EventLoop *loop,
     // 绑定Channel回调
     // std::placeholders::_1：占位符，对应 handleRead(Timestamp recvTime) 的参数。
     channel_->setReadCallback(
-        std::bind(&TcpConnection::hadleRead, this, std::placeholders::_1));
+        std::bind(&TcpConnection::handleRead, this, std::placeholders::_1));
     channel_->setWriteCallback(
         std::bind(&TcpConnection::handleWrite, this));
     channel_->setCloseCallback(
-        std::bind(&TcpConneciton::handleClose, this));
+        std::bind(&TcpConnection::handleClose, this));
     channel_->setErrorCallback(
         std::bind(&TcpConnection::handleError, this));
 
@@ -66,7 +64,7 @@ TcpConnection::TcpConnection(EventLoop *loop,
 
 TcpConnection::~TcpConnection()
 {
-    LOG_INFO("TcpConnection::dtor[%s] at fd=%d\n", name.c_str(), sockfd);
+    LOG_INFO("TcpConnection::dtor[%s] at fd=%d state=%d\n", name_.c_str(), channel_->fd(), (int)state_);
 }
 
 
@@ -133,7 +131,7 @@ void TcpConnection::handleWrite(){
 void TcpConnection::handleClose(){
     LOG_INFO("TcpConnection::handleClose fd=%d state=%d\n", channel_->fd(), (int)state_);
     setState(kDisconnected);
-    channel_->disableAll();
+    channel_->disableALL();
 
     // 获取 TcpConnection 智能指针
     // TcpConnection 是 通过 std::shared_ptr 管理的。
@@ -169,7 +167,7 @@ void TcpConnection::handleError(){
     else{
         err = optval;
     }
-    LOG_ERROR("TcpConnection::handleError name:%s - SO_ERROR:%d\n", name.c_str(), err);
+    LOG_ERROR("TcpConnection::handleError name:%s - SO_ERROR:%d\n", name_.c_str(), err);
 }
 
 // 用于向对端发送数据
@@ -227,7 +225,7 @@ void TcpConnection::sendInLoop(const void *data, size_t len){
             if(errno != EWOULDBLOCK){
                 LOG_ERROR("TcpConnection::sendInLoop");
                 // 说明对方关闭连接或者连接被重置了
-                if(errno == EPIPI || errno == ECONNRESET){
+                if(errno == EPIPE || errno == ECONNRESET){
                     faultError = true;  //后续不再发送
                 }
             }
@@ -260,7 +258,7 @@ void TcpConnection::sendInLoop(const void *data, size_t len){
 
 void TcpConnection::sendFile(int fileDescriptor, off_t offset, size_t count){
     if(connected()){
-        if(loop_->isInLoopThread){
+        if(loop_->isInLoopThread()){
             sendFileInLoop(fileDescriptor, offset, count);
         }
         else{
@@ -274,7 +272,7 @@ void TcpConnection::sendFile(int fileDescriptor, off_t offset, size_t count){
 }
 
 // kamma自己写的
-void TcpConnection:sendFileInLoop(int fileDescriptor, off_t offset, size_t count){
+void TcpConnection::sendFileInLoop(int fileDescriptor, off_t offset, size_t count){
     ssize_t bytesSent = 0;      // 已经发送了多少了
     size_t remaining = count;   // 还剩多少没发
     bool faultError = false;
@@ -288,7 +286,7 @@ void TcpConnection:sendFileInLoop(int fileDescriptor, off_t offset, size_t count
         // 从 fileDescriptor 中读取数据，并通过 socket_->fd() 发送到网络上。
         // 将文件内容直接拷贝到套接字的发送缓冲区，避免了在用户空间和内核空间之间的额外内存拷贝。
         // 为什么用socket_而非channel_，存疑250319
-        byetsSent = sendfiles(socket_->fd(), fileDescriptor, &offset, remaining);
+        bytesSent = sendfile(socket_->fd(), fileDescriptor, &offset, remaining);
         if(bytesSent >= 0){
             remaining = count - bytesSent;
             if(remaining == 0 && writeCompleteCallback_){
@@ -298,8 +296,8 @@ void TcpConnection:sendFileInLoop(int fileDescriptor, off_t offset, size_t count
         else{
             if(errno != EWOULDBLOCK){
                 LOG_ERROR("TcpConecction::sendFileInLoop");
-                if(error == EPIPE || error == ECONNRESET){
-                    faultError = ture;
+                if(errno == EPIPE || errno == ECONNRESET){
+                    faultError = true;
                 }
             }
         }
@@ -311,7 +309,7 @@ void TcpConnection:sendFileInLoop(int fileDescriptor, off_t offset, size_t count
     }
 }
 
-void TcpConnection:shutdown(){
+void TcpConnection::shutdown(){
     if(state_ == kConnected){
         setState(kDisconnecting);
         loop_->runInLoop(std::bind(&TcpConnection::shutdownInLoop, this));
@@ -319,7 +317,7 @@ void TcpConnection:shutdown(){
 }
 
 void TcpConnection::shutdownInLoop(){
-    if(!channel_->iswriting()){
+    if(!channel_->isWriting()){
         socket_->shutdownWrite();
     }
 }
@@ -345,10 +343,10 @@ void TcpConnection::connectDestroyed(){
     if(state_ == kConnected){
         setState(kDisconnected);
         // 取消 poller 对 channel_ 的所有监听。避免 TcpConnection 销毁后，channel_ 仍然收到事件，导致野指针访问。
-        channel_->disableAll();
+        channel_->disableALL();
         // 执行 用户的关闭回调，通知上层应用 连接已关闭，可以进行资源清理。
         // 调用相同的回调 connectionCallback_，但由于 TcpConnection 状态不同（kConnected vs kDisconnected），用户可以在回调函数内根据 TcpConnection 当前状态执行不同逻辑。
-        connectionCallback_(share_from_this());
+        connectionCallback_(shared_from_this());
     }
     // 彻底把 channel_ 从 poller 中移除，确保不再监听任何事件。
     channel_->remove();

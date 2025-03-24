@@ -1,5 +1,5 @@
 #include <functional>
-#include <string>
+#include <string.h>
 
 #include <ads_TcpServer.h>
 #include <ads_TcpConnection.h>
@@ -8,21 +8,21 @@
 
 static EventLoop *CheckLoopNotNull(EventLoop *loop){
     if(loop == nullptr){
-        LOG_FATAL("%s:%s:%d mainLoop is null!\n", __FILE__, ___FUNCTION__, __LINE__);
+        LOG_FATAL("%s:%s:%d mainLoop is null!\n", __FILE__, __FUNCTION__, __LINE__);
     }
     return loop;
 }
 
-TcpServer::TcpServer(EvenLoop *loop,
+TcpServer::TcpServer(EventLoop *loop,
                      const InetAddress &listenAddr,
                      const std::string &nameArg,
-                     Option option = kNoReusePort)
+                     Option option)
     // loop_ 是 TcpServer 依赖的 主 Reactor，CheckLoopNotNull 确保它合法。
     : loop_(CheckLoopNotNull(loop))
     , ipPort_(listenAddr.toIpPort())
     , name_(nameArg)
     , acceptor_(new Acceptor(loop, listenAddr, option == kNoReusePort))
-    , threadPool_(new EvenLoopThreadPool(loop, nameArg))
+    , threadPool_(new EventLoopThreadPool(loop, nameArg))
     , connectionCallback_()
     , messageCallback_()
     , nextConnId_(1)
@@ -30,7 +30,7 @@ TcpServer::TcpServer(EvenLoop *loop,
 {
     // Acceptor 监听到新连接 后会调用 newConnection(sockfd, peerAddr)。
     // 这里使用 std::bind 绑定 TcpServer::newConnection，并传递 sockfd 和 peerAddr。
-    acceptor_->setNewConnectionCallback(std::bind(&TcpServer::newConnection, this, std::placeholders::_1, std::placeholders::_2))
+    acceptor_->setNewConnectionCallback(std::bind(&TcpServer::newConnection, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 TcpServer::~TcpServer()
@@ -60,7 +60,7 @@ TcpServer::~TcpServer()
 
 // 设置 EventLoopThreadPool 的线程数量，即 subloop 的个数（Worker 线程数）
 void TcpServer::setThreadNum(int numThreads){
-    numThreads_ = numThreads
+    numThreads_ = numThreads;
     threadPool_->setThreadNum(numThreads_);
 }
 
@@ -88,15 +88,15 @@ void TcpServer::newConnection(int sockfd, const InetAddress &peerAddr){
     ++nextConnId_;
     // 如ServerName-127.0.0.1:8080#2
     std::string connName = name_ + buf;
-    LOG_INFO("TcpServer::newConnection [%s] - new connection [%s] from %s\n,
-              name_.c_str(), connName.c_str(), ipPort_.c_str()");
+    LOG_INFO("TcpServer::newConnection [%s] - new connection [%s] from %s\n",
+              name_.c_str(), connName.c_str(), ipPort_.c_str());
 
     // 获取sockfd绑定的本地IP和端口
     // sockaddr_in 是 IPv4 套接字地址结构
     sockaddr_in local; 
     // 清空 local 结构体，确保所有字节初始化为 0，避免出现脏数据
     ::memset(&local, 0, sizeof(local));
-    socklen_t addlen = sizeof(local);   // socklen_t 是 sockaddr 结构体长度 的类型
+    socklen_t addrlen = sizeof(local);   // socklen_t 是 sockaddr 结构体长度 的类型
     // getsockname()获取sockfd绑定的本地地址
     // sockfd：要查询的 套接字文件描述符
     // addr：存储本地地址的 输出参数（传入 &local）
@@ -123,7 +123,7 @@ void TcpServer::newConnection(int sockfd, const InetAddress &peerAddr){
     // this 代表当前 TcpServer 对象，使 removeConnection 绑定到该对象。
     conn->setCloseCallback(std::bind(&TcpServer::removeConnection, this, std::placeholders::_1));
 
-    ioLoop->runInLoop(std::bind(&TcpConnection::connectionEstablished, conn));
+    ioLoop->runInLoop(std::bind(&TcpConnection::connectEstablished, conn));
 }
 
 void TcpServer::removeConnection(const TcpConnectionPtr &conn){
@@ -133,11 +133,11 @@ void TcpServer::removeConnection(const TcpConnectionPtr &conn){
 
 void TcpServer::removeConnectionInLoop(const TcpConnectionPtr &conn){
     LOG_INFO("TcpServer::removeConnecitonInLoop [%s] - connection %s\n",
-             name_.s_str(), conn->name().c_str());
+             name_.c_str(), conn->name().c_str());
     // 在当前server的loop线程中访问connections_，移除该conn，避免多线程并发访问connections_
     connections_.erase(conn->name());
     // 获取conn所属subLoop
     EventLoop *ioLoop = conn->getLoop();
     // queueInLoop() 保证 connectDestroyed() 在 conn 所属的 subLoop 中安全执行，避免多线程问题。
-    ioLoop->queueInLoop(std::bind(&TcpConnection::connecDestroyed, conn));
+    ioLoop->queueInLoop(std::bind(&TcpConnection::connectDestroyed, conn));
 }

@@ -34,11 +34,11 @@ private:
 
     void onConnection(const TcpConnectionPtr &conn){
         if(conn->connected()){
-            LOG_INFO("New client: %s\n", conn->peerAddr_.toIpPort().c_str());
+            LOG_INFO("New client: %s\n", conn->peerAddress().toIpPort().c_str());
             clients_.insert(conn);
         }
         else{
-            LOG_INFO("Client disconnected: %s\n", conn->peerAddr_.toIpPort().c_str());
+            LOG_INFO("Client disconnected: %s\n", conn->peerAddress().toIpPort().c_str());
         }
     }
 
@@ -46,10 +46,10 @@ private:
     void onMessage(const TcpConnectionPtr &conn, Buffer *buf, Timestamp time){
         // 接收消息
         std::string msg = buf->retrieveAllAsString();
-        LOG_INFO("Received message: %s", msg);
+        LOG_INFO("Received message: %s", msg.c_str());
 
         // 广播消息
-        for(cosnt auto &cliend: clients_){
+        for(const auto &client: clients_){
             if(client != conn){
                 client->send(msg);
             }
@@ -61,7 +61,7 @@ private:
 };
 
 int main(){
-    EventLoop *loop;
+    EventLoop loop;
     InetAddress listenAddr(8081, "0.0.0.0");
     ChatServer server(&loop, listenAddr);
     server.start();

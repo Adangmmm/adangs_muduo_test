@@ -1,8 +1,8 @@
 #pragma once
 
 #include <functional>
-
 #include <ads_noncopyable.h>
+
 #include "ads_Socket.h"
 #include "ads_Channel.h"
 
@@ -32,7 +32,7 @@ private:
     void handleRead();  //当有新连接时，EventLoop会调用这个方法处理新连接
 
     EventLoop *loop_;   //事件循环对象指针，将Acceptor纳入到EventLoop中管理
-    Socket accpetSocket_;   //封装了一个sockt用于接收新连接
+    Socket acceptSocket_;   //封装了一个sockt用于接收新连接
     Channel acceptChannel_; //将acceptSocket_封装成一个Channel，用于监听新连接事件
     NewConnectionCallback NewConnectionCallback_; //储存新连接到来时的回调函数
     bool listenning_;  //判断是否正在监听

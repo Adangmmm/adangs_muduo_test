@@ -29,7 +29,7 @@ EPollPoller::~EPollPoller()
 
 Timestamp EPollPoller::poll(int timeoutMs, ChannelList *activeChannnels){
     // —__FUNCTION__是一个预定义宏，表示当前函数名称，channels_.size()表示当前epoll监听的fd数量 
-    LOG_INFO("func=%s +> fd total count:%lu\n", __FUNCTION__, channels_.size())
+    LOG_INFO("func=%s +> fd total count:%lu\n", __FUNCTION__, channels_.size());
 
     /*
     * &*events_.begin() 表示传入存储触发事件的数组
@@ -37,7 +37,7 @@ Timestamp EPollPoller::poll(int timeoutMs, ChannelList *activeChannnels){
     * timeoutMs 表示超时时间，-1表示无限等待
     * 整个numEvents可能返回三个结果：>0表示触发的事件数量；=0表示超时即无事发生；<0表示发生错误
     */
-    int numEvents = ::epoll_wait(epollfd_, &*events_.begin(), static_cat<int>(events_.size()), timeoutMs);
+    int numEvents = ::epoll_wait(epollfd_, &*events_.begin(), static_cast<int>(events_.size()), timeoutMs);
 
     // errno是全局变量，表示最近一次系统调用的错误码，调用epoll_wait()可能会修改errno，所以先保存下来
     int saveErrno = errno;
@@ -66,10 +66,10 @@ Timestamp EPollPoller::poll(int timeoutMs, ChannelList *activeChannnels){
 }
 
 // channel::update remove => EventLoop::updateChannel remove Channel => Poller::updateChannel removeChannel
-viod EPollPoller:updateChannel(Channel *channel){
+void EPollPoller::updateChannel(Channel *channel){
 
     const int index = channel->index();
-    LOG_INFO("func=%s => fd=%d events=%d index=%d\n", __FUNCTION__, channel->fd, channel.events(), index);
+    LOG_INFO("func=%s => fd=%d events=%d index=%d\n", __FUNCTION__, channel->fd(), channel->events(), index);
 
     if(index == kNew || index == kDeleted){
         if(index == kNew){
@@ -122,7 +122,7 @@ void EPollPoller::removeChannel(Channel *channel){
  * 4.把 Channel 加入 activeChannels
  *   activeChannels->push_back(channel); → 让 EventLoop 知道有哪些 Channel 需要处理。
  */
-void EPollPoller:fillActiveChannels(int numEvents, ChannelList *activeChannels) const{
+void EPollPoller::fillActiveChannels(int numEvents, ChannelList *activeChannels) const{
     for(int i = 0; i < numEvents; ++i){
         // events_[i].data.ptr 是 void* 类型（epoll_event 结构体定义）。static_cast<Channel *> 用于把 void* 转换成 Channel* 指针。
         Channel *channel = static_cast<Channel *>(events_[i].data.ptr);
@@ -137,9 +137,9 @@ void EPollPoller::update(int operation, Channel *channel){
     // :: 表示 调用全局 memset，避免和 class 里的 memset 发生冲突。作用是 将 event 清零，防止脏数据影响 epoll 监听。
     ::memset(&event, 0, sizeof(event));
 
-    int fd = channel->fd;
+    int fd = channel->fd();
 
-    event.events = channel->events;
+    event.events = channel->events();
     event.data.fd = fd;
     event.data.ptr = channel;
 

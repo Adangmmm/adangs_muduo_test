@@ -3,7 +3,7 @@
 #include "ads_Poller.h"
 #include "ads_EPollPoller.h"
 
-Poller *Poller::newDefualtPoller(EventLoop *loop){
+Poller *Poller::newDefaultPoller(EventLoop *loop){
     if(::getenv("MUDUO_USE_POLL")){
         // 如果环境变量 MUDUO_USE_POLL 存在：
         // 说明用户想要使用 poll 而不是 epoll

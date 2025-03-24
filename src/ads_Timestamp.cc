@@ -7,7 +7,7 @@ Timestamp::Timestamp() : microSecondsSinceEpoch_(0)
 }
 
 Timestamp::Timestamp(int64_t microSecondsSinceEpoch)
-    : microSecondsSinceEpcch_(microSecondsSinceEpoch)
+    : microSecondsSinceEpoch_(microSecondsSinceEpoch)
 {
 }
 

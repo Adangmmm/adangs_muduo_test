@@ -4,10 +4,10 @@
 #include <errno.h>
 #include <memory>
 
-#include "EventLoop.h"
-#include "Logger.h"
-#include "Channel.h"
-#include "Poller.h"
+#include "ads_EventLoop.h"
+#include "ads_Logger.h"
+#include "ads_Channel.h"
+#include "ads_Poller.h"
 
 // __thread 是 GCC 和 Clang 支持的线程局部存储（TLS）机制,每个线程都有一个独立的 t_loopInThisThread 变量，互不干扰。
 // 通过 __thread 限制每个线程只能拥有一个 EventLoop 实例。one loop per thread
@@ -35,8 +35,8 @@ const int kPollTimeMs = 10000;
 // 创建wakeupfd 用来notify唤醒subReactor处理新来的channel
 int createEventfd(){
     int evtfd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    if(ectfd < 0){
-        LOGD_FATAL("eventfd error:%d\n", errno);
+    if(evtfd < 0){
+        LOG_FATAL("eventfd error:%d\n", errno);
     }
     return evtfd;
 }
@@ -60,14 +60,14 @@ EventLoop::EventLoop()
         t_loopInThisThread = this;
     }
     // wakeupChannel_ 是对 eventfd 的封装。绑定读事件的回调函数为 handleRead()。handleRead() 在 eventfd 上有数据可读时触发
-    wakeupChannel_->setReadCallback(std::bind(&EventLoop:handleRead, this));
+    wakeupChannel_->setReadCallback(std::bind(&EventLoop::handleRead, this));
     // 将 wakeupFd_ 添加到 Poller 中，监听其读事件。Poller 在 epoll_wait() 发现 eventfd 可读时，触发 handleRead()
     wakeupChannel_->enableReading();
 }
 
 EventLoop::~EventLoop(){
     // 调用disableAll()让wakeupChannel_停止监听所有事件（不再关注任何事件）
-    wakeupChannel_->disableAll();
+    wakeupChannel_->disableALL();
     // 调用remove()将wakeupChannel_从Poller中移除
     wakeupChannel_->remove();
     // 关闭eventfd文件描述符，防止资源泄露
@@ -85,9 +85,9 @@ void EventLoop::loop(){
 
     while(!quit_){
         // 每次循环开始前，清空上一轮出发的事件列表。防止脏数据干扰本轮事件处理
-        activeChannels.clear();
+        activeChannels_.clear();
         // 等待内核返回已触发的IO事件，超时事件为10s
-        pollReturntime_ = poller_->poll(kPollTimeMs, &activeChannels_);
+        pollReturnTime_ = poller_->poll(kPollTimeMs, &activeChannels_);
         // 遍历所有活跃Channel
         for(Channel *channel : activeChannels_){
             // 调用channel->handleEvent()处理具体事件
@@ -137,9 +137,9 @@ void EventLoop::quit(){
  */
 void EventLoop::wakeup(){
     // eventfd读写操作需要传递unit64_t大小的数据
-    unit64_t one = 1;
+    uint64_t one = 1;
     // write()是POSIX标准库函数，one值写入wakeupFd_，触发eventfd内部计数器
-    ssize_t = write(wakeupFd_, &one, sizeof(one));
+    ssize_t n = write(wakeupFd_, &one, sizeof(one));
     if(n != sizeof(one)){
         LOG_ERROR("EventLoop::wakeup() writes %lu bytes instead of 8\n", n);
     }
@@ -147,7 +147,7 @@ void EventLoop::wakeup(){
 
 // 读取eventfd，将状态重置
 void EventLoop::handleRead(){
-    unit64_t one = 1;
+    uint64_t one = 1;
     ssize_t n = read(wakeupFd_, &one, sizeof(one));
     if(n != sizeof(one)){
         LOG_ERROR("EventLoop::handleRead() reads %lu bytes instead of 8\n", n);
@@ -167,12 +167,12 @@ void EventLoop::runInLoop(Functor cb){
 // 把cb放入队列 唤醒loop所在线程执行cb
 void EventLoop::queueInLoop(Functor cb){
     {
-        std::unique_lock<std::mutex> lock(mutex);   //加锁保证线程安全
+        std::unique_lock<std::mutex> lock(mutex_);   //加锁保证线程安全
         pendingFunctors_.emplace_back(cb);  //将任务加入新队列
     }
     // || callingPendingFunctors_：当前线程在执行其他任务（即在 doPendingFunctors() 中执行任务）。
     // 如果在这个过程中有新的任务加入，queueInLoop() 仍然会触发 wakeup()，让 epoll_wait() 立即返回。这样下一个事件循环就会立刻执行新任务。
-    if(!isInLoopThread() || callingPendingFunctors){
+    if(!isInLoopThread() || callingPendingFunctors_){
         wakeup();
     }
 }
@@ -207,7 +207,7 @@ void EventLoop::doPendingFunctors(){
     }
 
     // 遍历执行回调函数, 在非临界区完成，保证执行过程中不阻塞其他线程调用queueInLoop()
-    for(const Functor &functor: functos){
+    for(const Functor &functor: functors){
         functor();
     }
 

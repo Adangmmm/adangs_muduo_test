@@ -19,16 +19,16 @@
 
 class TcpServer{
 public:
-    using ThreadInitCallback = std::function<void(EvenLoop *)>;
+    using ThreadInitCallback = std::function<void(EventLoop *)>;
 
     // 端口复用选项，决定是否允许多个套接字绑定同一端口。
     enum Option{
-        kNoReusePort;
-        kReusePort;
+        kNoReusePort,
+        kReusePort,
     };
 
     TcpServer(EventLoop *loop,
-              const InetAddress *listenAddr,
+              const InetAddress &listenAddr,
               const std::string &nameArg,
               Option option = kNoReusePort);
     ~TcpServer();
@@ -43,7 +43,7 @@ public:
     void setWriteCompleteCallback(const WriteCompleteCallback &cb) {writeCompleteCallback_ = cb;}
 
     // 设置 工作线程数量，底层采用 one loop per thread 模型，每个线程拥有一个 EventLoop。
-    void setThreadNum(int numThreads)
+    void setThreadNum(int numThreads);
 
     // 启动服务器，如果没有监听，就开始监听新连接。
     // 这个函数是 线程安全 的，可以被多个线程调用，但仅第一次调用会生效。
@@ -74,12 +74,12 @@ private:
     ThreadInitCallback threadInitCallback_;
     ConnectionCallback connectionCallback_;
     MessageCallback messageCallback_;
-    WriteCompleteCallbck writeCompleteCallback_;
+    WriteCompleteCallback writeCompleteCallback_;
 
     int numThreads_;     // 线程池中线程数量
     std::atomic_int started_;    // 是否已启动，保证线程安全
     int nextConnId_;     // 下一个连接的ID，用于生成唯一连接名称
-    ConnetionMap connetions_;    // 存储 所有的 TCP 连接，可以快速查找和管理。
+    ConnectionMap connections_;    // 存储 所有的 TCP 连接，可以快速查找和管理。
     
 };
 

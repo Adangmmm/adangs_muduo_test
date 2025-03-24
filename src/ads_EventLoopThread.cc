@@ -2,7 +2,7 @@
 #include "ads_EventLoop.h"
 
 EventLoopThread::EventLoopThread(const ThreadInitCallback &cb,
-                                 const std::string %name)
+                                 const std::string &name)
     : loop_(nullptr)
     , exiting_(false)
     // this 是指向当前 EventLoopThread 实例的指针
@@ -14,7 +14,7 @@ EventLoopThread::EventLoopThread(const ThreadInitCallback &cb,
 }
 
 EventLoopThread::~EventLoopThread(){
-    exiting = true;
+    exiting_ = true;
     // 检查 loop_ 是否已经初始化，如果 nullptr 说明 EventLoop 没有创建，直接返回。
     if(loop_ != nullptr){
         loop_->quit();
@@ -30,10 +30,10 @@ EventLoop *EventLoopThread::startLoop(){
 
     EventLoop *loop = nullptr;
     {
-        std::unique_lock<std::mutex> lock(mutex);
+        std::unique_lock<std::mutex> lock(mutex_);
         // 释放 mutex_，阻塞当前线程（主线程），直到满足 loop_ != nullptr 条件。
         // 等待cond_.notify_one() 唤醒主线程。被唤醒后主线程会重新获得mutex_，继续执行
-        cond_.wait(lock, [this]()<return loop_ != nullptr;>);
+        cond_.wait(lock, [this](){return loop_ != nullptr;});
         loop = loop_;
     }
     return loop;
@@ -66,12 +66,12 @@ void EventLoopThread::threadFunc(){
     // callback_ 是一个 std::function<void(EventLoop *)> 类型的回调函数，用户可以在 EventLoop 线程启动时执行一些额外的初始化逻辑。
     // 如果 callback_ 不为空，就执行它，并传入 loop 指针，使得用户可以在 EventLoop 运行前进行配置。
     if(callback_){
-        callback_(&loop)
+        callback_(&loop);
     }
 
     // 加锁，确保 loop_ = &loop; 这一赋值操作是线程安全的。
     {
-        std::unique_lock<std::mutex> lock(mutex);
+        std::unique_lock<std::mutex> lock(mutex_);
         // 让主线程拿到 EventLoop 指针
         loop_ = &loop;
         // 唤醒正在等待 loop_ 赋值的主线程。
@@ -80,7 +80,7 @@ void EventLoopThread::threadFunc(){
     // 启动事件循环，让 EventLoop 开始监听 I/O 事件、执行定时任务、运行回调等。
     loop.loop();
 
-    std::unique_lock<std::mutex> lock(mutex);
+    std::unique_lock<std::mutex> lock(mutex_);
     // loop_ 只是一个指向 EventLoop 的指针，并不负责管理 EventLoop 的生命周期。
     // 当 loop.loop() 退出时，意味着 EventLoop 已经销毁，所以将 loop_ 置空，防止主线程访问一个无效的指针。
     loop_ = nullptr;

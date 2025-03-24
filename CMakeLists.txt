@@ -1,5 +1,5 @@
 # 设置最低版本和项目名称
-cmake_minimun_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.0)
 project(adangs_muduo)   # 锁定项目的工作目录
 
 # 设置全局C++标准
